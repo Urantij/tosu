@@ -164,6 +164,12 @@ export const autoUpdater = async (
         await fs.promises.rename(currentExecutablePath, backupExecutablePath);
         await unzip(fileDestination, getProgramPath());
 
+        // maybe it does work on windows and macos, but i cant test it and i think its pointless
+        if (platform.type === 'linux') {
+            const stats = await fs.promises.stat(backupExecutablePath);
+            await fs.promises.chmod(currentExecutablePath, stats.mode);
+        }
+
         // close request to allow destroy server
         if (from === 'server' && res) {
             res.setHeader('Content-Type', 'application/json');
