@@ -67,10 +67,6 @@ import {
     ModsAcronyms,
     ModsCategories
 } from '@/utils/osuMods.types';
-import {
-    readNullableInt,
-    readSharpDictionaryIntToRef
-} from '@/utils/tprocessExtensions';
 
 type LazerPatternData = {
     scalingContainerTargetDrawSize: number;
@@ -3695,7 +3691,7 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
         return { chat: chatItems, spectatingClients };
     }
 
-    rankedPlay(): IRankedPlay | 'not-ready' {
+    rankedPlay(): IRankedPlay {
         const multiplayerClient = this.multiplayerClient();
 
         if (!multiplayerClient) {
@@ -3776,10 +3772,7 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
 
         // i believe its proved this state is rankedplay state
 
-        const users = readSharpDictionaryIntToRef(
-            this.process,
-            usersDictionary
-        );
+        const users = this.process.readSharpDictionaryIntToRef(usersDictionary);
 
         return {
             stage,
@@ -3815,15 +3808,13 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
                     )
                 }
             })),
-            activeUserId: readNullableInt(
-                this.process,
+            activeUserId: this.process.readNullableInt(
                 state +
                     this.offsets[
                         'osu.Game.Online.Multiplayer.MatchTypes.RankedPlay.RankedPlayRoomState'
                     ]['<ActiveUserId>k__BackingField']
             ),
-            winningUserId: readNullableInt(
-                this.process,
+            winningUserId: this.process.readNullableInt(
                 state +
                     this.offsets[
                         'osu.Game.Online.Multiplayer.MatchTypes.RankedPlay.RankedPlayRoomState'
