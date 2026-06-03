@@ -67,6 +67,7 @@ import {
     ModsCategories
 } from '@/utils/osuMods.types';
 import {
+    readBindableInt,
     readNullableInt,
     readSharpDictionaryIntToRef
 } from '@/utils/tprocessExtensions';
@@ -177,6 +178,7 @@ export interface Offsets {
     };
     'osu.Game.Online.Spectator.SpectatorScoreProcessor': {
         scoreInfo: number;
+        Combo: number;
     };
     'osu.Game.Online.Multiplayer.MultiplayerRoom': {
         RoomID: number;
@@ -3499,6 +3501,15 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
 
                 if (!scoreInfo) continue;
 
+                const comboBind = this.process.readIntPtr(
+                    scoreProcessor +
+                        this.offsets[
+                            'osu.Game.Online.Spectator.SpectatorScoreProcessor'
+                        ].Combo
+                );
+
+                const combo = readBindableInt(this.process, comboBind);
+
                 // i think its better to explicitly show we dont know position
                 const player = this.readLeaderboardScore(scoreInfo, 0);
 
@@ -3525,6 +3536,8 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
 
                 player.userId = userScore.key;
                 player.name = userName;
+                // ScoreInfo does not have current combo :)
+                player.combo = combo;
 
                 leads.push(player);
             }
