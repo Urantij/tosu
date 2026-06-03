@@ -5,6 +5,10 @@ export interface DictionaryIntToRefEntry {
     address: number;
 }
 
+export function readBindableInt(process: Process, address: number) {
+    return process.readInt(address + 0x8 + 56);
+}
+
 export function readNullableInt(
     process: Process,
     address: number
