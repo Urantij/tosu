@@ -148,7 +148,8 @@ export class LazerInstance extends AbstractInstance {
             resultScreen,
             settings,
             user,
-            lazerMultiSpectating
+            lazerMultiSpectating,
+            rankedPlay
         } = this.getServices([
             'global',
             'menu',
@@ -159,7 +160,8 @@ export class LazerInstance extends AbstractInstance {
             'settings',
             'tourneyManager',
             'user',
-            'lazerMultiSpectating'
+            'lazerMultiSpectating',
+            'rankedPlay'
         ]);
 
         while (!this.isDestroyed) {
@@ -191,6 +193,8 @@ export class LazerInstance extends AbstractInstance {
                         continue;
                     }
                 }
+
+                rankedPlay.updateState();
 
                 settings.updateState();
 

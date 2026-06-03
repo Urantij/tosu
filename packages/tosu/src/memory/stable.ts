@@ -22,6 +22,7 @@ import type {
     IMP3Length,
     IMenu,
     IOffsets,
+    IRankedPlay,
     IResultScreen,
     ISettings,
     ITourney,
@@ -1441,5 +1442,9 @@ export class StableMemory extends AbstractMemory<OsuPatternData> {
         } catch (error) {
             return error as Error;
         }
+    }
+
+    rankedPlay(): IRankedPlay | 'not-ready' {
+        throw new Error('Stable does not have Ranked Play.');
     }
 }
