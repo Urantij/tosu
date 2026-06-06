@@ -3490,10 +3490,8 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
                     ].UserScores
             );
 
-            const userScores = readSharpDictionaryIntToRef(
-                this.process,
-                userScoresDictionary
-            );
+            const userScores =
+                this.process.readSharpDictionaryIntToRef(userScoresDictionary);
 
             // TODO properly set/read position, rank, teamid
             // teamid is in tracked user data
@@ -3523,7 +3521,7 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
                         ].Combo
                 );
 
-                const combo = readBindableInt(this.process, comboBind);
+                const combo = this.process.readBindableInt(comboBind);
 
                 // i think its better to explicitly show we dont know position
                 const player = this.readLeaderboardScore(scoreInfo, 0);
