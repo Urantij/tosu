@@ -3771,6 +3771,16 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
             return 'not-ready';
         }
 
+        const roomId = this.process.readLong(
+            room +
+                this.offsets['osu.Game.Online.Multiplayer.MultiplayerRoom']
+                    .RoomID
+        );
+
+        if (roomId < 0) {
+            return 'not-ready';
+        }
+
         const state = this.process.readIntPtr(
             room +
                 this.offsets['osu.Game.Online.Multiplayer.MultiplayerRoom'][
@@ -3841,6 +3851,7 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
         );
 
         return {
+            roomId,
             stage,
             currentRound: round,
             starRating,

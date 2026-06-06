@@ -219,6 +219,7 @@ export type IRankedPlayUserInfo = {
 };
 
 export type IRankedPlay = {
+    roomId: number;
     stage: RankedPlayStage;
     currentRound: number;
     damageMultiplier: number;
