@@ -36,6 +36,7 @@ import type {
     IMenu,
     IRankedPlay,
     IResultScreen,
+    IRoom,
     IScore,
     ISettings,
     ITourney,
@@ -66,11 +67,6 @@ import {
     ModsAcronyms,
     ModsCategories
 } from '@/utils/osuMods.types';
-import {
-    readBindableInt,
-    readNullableInt,
-    readSharpDictionaryIntToRef
-} from '@/utils/tprocessExtensions';
 
 type LazerPatternData = {
     scalingContainerTargetDrawSize: number;
@@ -287,6 +283,7 @@ export interface Offsets {
     'osu.Game.Online.API.Requests.Responses.APIUser': {
         '<Id>k__BackingField': number;
         '<Username>k__BackingField': number;
+        AvatarUrl: number;
         countryCodeString: number;
         statistics: number;
         MatchmakingStatistics: number;
@@ -2033,6 +2030,12 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
                         'osu.Game.Online.API.Requests.Responses.APIUser'
                     ]['<Username>k__BackingField']
             ),
+            avatarUrl: this.process.readSharpStringPtr(
+                user +
+                    this.offsets[
+                        'osu.Game.Online.API.Requests.Responses.APIUser'
+                    ].AvatarUrl
+            ),
             accuracy,
             rankedScore,
             level,
@@ -3754,7 +3757,7 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
         return { chat: chatItems, spectatingClients };
     }
 
-    rankedPlay(): IRankedPlay | 'not-ready' {
+    rankedPlay(): IRankedPlay {
         const multiplayerClient = this.multiplayerClient();
 
         if (!multiplayerClient) {
@@ -3845,10 +3848,7 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
 
         // i believe its proved this state is rankedplay state
 
-        const users = readSharpDictionaryIntToRef(
-            this.process,
-            usersDictionary
-        );
+        const users = this.process.readSharpDictionaryIntToRef(usersDictionary);
 
         return {
             roomId,
@@ -3885,20 +3885,104 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
                     )
                 }
             })),
-            activeUserId: readNullableInt(
-                this.process,
+            activeUserId: this.process.readNullableInt(
                 state +
                     this.offsets[
                         'osu.Game.Online.Multiplayer.MatchTypes.RankedPlay.RankedPlayRoomState'
                     ]['<ActiveUserId>k__BackingField']
             ),
-            winningUserId: readNullableInt(
-                this.process,
+            winningUserId: this.process.readNullableInt(
                 state +
                     this.offsets[
                         'osu.Game.Online.Multiplayer.MatchTypes.RankedPlay.RankedPlayRoomState'
                     ]['<WinningUserId>k__BackingField']
             )
+        };
+    }
+
+    room(): IRoom {
+        const multiplayerClient = this.multiplayerClient();
+
+        if (!multiplayerClient) {
+            return 'not-ready';
+        }
+
+        const room = this.process.readIntPtr(
+            multiplayerClient +
+                this.offsets['osu.Game.Online.Multiplayer.MultiplayerClient']
+                    .room
+        );
+
+        if (!room) {
+            return 'not-ready';
+        }
+
+        const roomId = this.process.readLong(
+            room +
+                this.offsets['osu.Game.Online.Multiplayer.MultiplayerRoom']
+                    .RoomID
+        );
+
+        const multiplayerUsers = this.process.readIntPtr(room + 0x10);
+        const multiplayerUsersItems = this.process.readIntPtr(
+            multiplayerUsers + 0x8
+        );
+        const multiplayerUsersCount = this.process.readInt(
+            multiplayerUsers + 0x10
+        );
+
+        const users: {
+            id: number;
+            info:
+                | {
+                      username: string;
+                      countryCode: CountryCodes;
+                      avatarUrl: string | undefined;
+                  }
+                | undefined;
+        }[] = [];
+
+        for (let i = 0; i < multiplayerUsersCount; i++) {
+            const current = this.process.readIntPtr(
+                multiplayerUsersItems + 0x10 + 0x8 * i
+            );
+
+            const userId = this.process.readInt(
+                current +
+                    this.offsets[
+                        'osu.Game.Online.Multiplayer.MultiplayerRoomUser'
+                    ].UserID
+            );
+
+            const apiUser = this.process.readInt(
+                current +
+                    this.offsets[
+                        'osu.Game.Online.Multiplayer.MultiplayerRoomUser'
+                    ]['<User>k__BackingField']
+            );
+
+            if (apiUser) {
+                const user = this.readUser(apiUser);
+
+                users.push({
+                    id: userId,
+                    info: {
+                        username: user.name,
+                        countryCode: user.countryCode,
+                        avatarUrl: user.avatarUrl
+                    }
+                });
+            } else {
+                users.push({
+                    id: userId,
+                    info: undefined
+                });
+            }
+        }
+
+        return {
+            roomID: roomId,
+            users
         };
     }
 

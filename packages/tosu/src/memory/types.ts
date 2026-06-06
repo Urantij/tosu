@@ -1,3 +1,4 @@
+import { CountryCodes } from '@tosu/common';
 import type { RankedPlayStage } from '@tosu/common/enums/osu';
 
 import type { ITourneyManagerChatItem } from '@/states/tourney';
@@ -218,15 +219,32 @@ export type IRankedPlayUserInfo = {
     damageMultiplier: number;
 };
 
-export type IRankedPlay = {
-    roomId: number;
-    stage: RankedPlayStage;
-    currentRound: number;
-    damageMultiplier: number;
-    starRating: number;
-    users: { id: number; info: IRankedPlayUserInfo }[];
-    activeUserId: number | undefined;
-    winningUserId: number | undefined;
-};
+export type IRankedPlay =
+    | {
+          stage: RankedPlayStage;
+          currentRound: number;
+          damageMultiplier: number;
+          starRating: number;
+          users: { id: number; info: IRankedPlayUserInfo }[];
+          activeUserId: number | undefined;
+          winningUserId: number | undefined;
+      }
+    | string;
+
+export type IRoom =
+    | {
+          roomID: number;
+          users: {
+              id: number;
+              info:
+                  | {
+                        username: string;
+                        countryCode: CountryCodes;
+                        avatarUrl: string | undefined;
+                    }
+                  | undefined;
+          }[];
+      }
+    | string;
 
 export type ISettings = SettingsObject | Error;
