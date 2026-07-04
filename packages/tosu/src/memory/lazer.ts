@@ -160,6 +160,21 @@ export interface Offsets {
     'osu.Game.Screens.OnlinePlay.Multiplayer.Multiplayer': {
         '<client>k__BackingField': number;
     };
+    'osu.Game.Screens.OnlinePlay.Multiplayer.MultiplayerPlayer': {
+        '<client>k__BackingField': number;
+        leaderboardProvider: number;
+    };
+    'osu.Game.Screens.Play.Leaderboards.MultiplayerLeaderboardProvider': {
+        UserScores: number;
+    };
+    'osu.Game.Screens.Play.Leaderboards.MultiplayerLeaderboardProvider.TrackedUserData': {
+        User: number;
+        ScoreProcessor: number;
+    };
+    'osu.Game.Online.Spectator.SpectatorScoreProcessor': {
+        scoreInfo: number;
+        Combo: number;
+    };
     'osu.Game.Online.Multiplayer.MultiplayerRoom': {
         RoomID: number;
         '<ChannelID>k__BackingField': number;
@@ -643,6 +658,17 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
                             '<ScoreManager>k__BackingField'
                         ]
                 )
+        );
+    }
+
+    private checkIfMultiplayerPlayer(playerAddress: number) {
+        return (
+            this.process.readIntPtr(
+                playerAddress +
+                    this.offsets[
+                        'osu.Game.Screens.OnlinePlay.Multiplayer.MultiplayerPlayer'
+                    ]['<client>k__BackingField']
+            ) === this.multiplayerClient()
         );
     }
 
@@ -3439,6 +3465,91 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
             -1
         );
 
+        const leads: LeaderboardPlayer[] = [];
+
+        if (this.checkIfMultiplayerPlayer(player)) {
+            const leaderboard = this.process.readIntPtr(
+                player +
+                    this.offsets[
+                        'osu.Game.Screens.OnlinePlay.Multiplayer.MultiplayerPlayer'
+                    ].leaderboardProvider
+            );
+
+            const userScoresDictionary = this.process.readIntPtr(
+                leaderboard +
+                    this.offsets[
+                        'osu.Game.Screens.Play.Leaderboards.MultiplayerLeaderboardProvider'
+                    ].UserScores
+            );
+
+            const userScores = readSharpDictionaryIntToRef(
+                this.process,
+                userScoresDictionary
+            );
+
+            // TODO properly set/read position, rank, teamid
+            // teamid is in tracked user data
+            // UserQuit also
+
+            for (const userScore of userScores) {
+                const scoreProcessor = this.process.readIntPtr(
+                    userScore.address +
+                        this.offsets[
+                            'osu.Game.Screens.Play.Leaderboards.MultiplayerLeaderboardProvider.TrackedUserData'
+                        ].ScoreProcessor
+                );
+
+                const scoreInfo = this.process.readIntPtr(
+                    scoreProcessor +
+                        this.offsets[
+                            'osu.Game.Online.Spectator.SpectatorScoreProcessor'
+                        ].scoreInfo
+                );
+
+                if (!scoreInfo) continue;
+
+                const comboBind = this.process.readIntPtr(
+                    scoreProcessor +
+                        this.offsets[
+                            'osu.Game.Online.Spectator.SpectatorScoreProcessor'
+                        ].Combo
+                );
+
+                const combo = readBindableInt(this.process, comboBind);
+
+                // i think its better to explicitly show we dont know position
+                const player = this.readLeaderboardScore(scoreInfo, 0);
+
+                const user = this.process.readIntPtr(
+                    userScore.address +
+                        this.offsets[
+                            'osu.Game.Screens.Play.Leaderboards.MultiplayerLeaderboardProvider.TrackedUserData'
+                        ].User
+                );
+
+                const apiUser = this.process.readIntPtr(
+                    user +
+                        this.offsets[
+                            'osu.Game.Online.Multiplayer.MultiplayerRoomUser'
+                        ]['<User>k__BackingField']
+                );
+
+                const userName = this.process.readSharpStringPtr(
+                    apiUser +
+                        this.offsets[
+                            'osu.Game.Online.API.Requests.Responses.APIUser'
+                        ]['<Username>k__BackingField']
+                );
+
+                player.userId = userScore.key;
+                player.name = userName;
+                // ScoreInfo does not have current combo :)
+                player.combo = combo;
+
+                leads.push(player);
+            }
+        }
+
         // TODO: update once I bother todo it :)
         // const leaderboardScores = this.process.readIntPtr(
         //     player + (this.replayMode ? 0x4e8 : 0x520)
@@ -3454,7 +3565,7 @@ export class LazerMemory extends AbstractMemory<LazerPatternData> {
         //     scores.push(this.readLeaderboardScore(items[i], i));
         // }
 
-        return [this.isLeaderboardVisible, personalScore, []];
+        return [this.isLeaderboardVisible, personalScore, leads];
     }
 
     readSpectatingData(): ILazerSpectator {
